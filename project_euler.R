@@ -24,24 +24,37 @@ problem_2 <- function(){
   sum
 }
 
-sieve <- function(n){
-  a <- !logical(length(2:n))
-  if(n < 2){
-    NA
-  }
-  else if(n %in% 2:3){
-    2
-  }
-  else
-  {
-    for(i in 2:floor(sqrt(n))){
-      if(a[i]){
-        for(j in seq(i^2, n, by = i)){
-          a[j] <- FALSE
-        }
-      }
+# sieve <- function(n){
+#   a <- !logical(length(2:n))
+#   if(n < 2){
+#     NA
+#   }
+#   else if(n %in% 2:3){
+#     2
+#   }
+#   else
+#   {
+#     for(i in 2:floor(sqrt(n))){
+#       if(a[i]){
+#         for(j in seq(i^2, n, by = i)){
+#           a[j] <- FALSE
+#         }
+#       }
+#     }
+#     which(a==TRUE)[-1]
+#   }
+# }
+
+sieve <- function(n) {
+  if (n < 2) return(NULL)
+  a <- rep(T, n)
+  a[1] <- F
+  for(i in seq(n)) {
+    if (a[i]) {
+      j <- i * i
+      if (j > n) return(which(a))
+      a[seq(j, n, by=i)] <- F
     }
-    which(a==TRUE)[-1]
   }
 }
 
@@ -151,7 +164,7 @@ problem_10 <- function(){
 }
 
 problem_11 <- function(){
-  setwd("C:/Users/06sha_000/Documents/R/Project Euler")
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
   grid <- readLines("problem11.txt", warn = FALSE)
   grid <- as.numeric(unlist(lapply(grid, function(x){strsplit(x, " ")})))
   grid <- matrix(grid, ncol=20)
@@ -183,7 +196,7 @@ problem_12 <- function(){
 }
 
 problem_13 <- function(){
-  setwd("C:/Users/06sha_000/Documents/R/Project Euler")
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
   options(scipen=999)
   numbers <- as.numeric(readLines("problem13.txt", warn = FALSE))
   substr(as.character(sum(numbers)),1,10)
@@ -270,7 +283,7 @@ problem_17 <- function(){
 }
 
 problem_18 <- function(){
-  setwd("C:/Users/06sha_000/Documents/R/Project Euler")
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
   triangle <- readLines("problem18.txt", warn = FALSE)
   triangle_size <- length(triangle)
   nums <- list()
@@ -337,7 +350,7 @@ problem_21 <- function(){
 }
 
 problem_22 <- function(){
-  setwd("C:/Users/06sha_000/Documents/R/Project Euler")
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
   names <- readLines("problem22.txt", warn = FALSE)
   names <- sort(unlist(strsplit(gsub("\"", "", names), ",")))
   
@@ -667,18 +680,112 @@ problem_38 <- function(){
 problem_39 <- function(){
   sides <- 1:999
   sides <- sides^2
-  sums <- list()
+  sums <- c(matrix(0, 1000, 1))
   for(i in 1:length(sides)){
     for(j in i:length(sides)){
       sum <- sides[i] + sides[j]
-      p <- sqrt(sides[i]) + sqrt(sides[j])
+      p <- sqrt(sides[i]) + sqrt(sides[j]) + sqrt(sum)
       if(sum %in% sides && p < 1000){
-        
+        sums[p] <- sums[p] + 1
       }
     }
   }
+  which.max(sums)
 }
 
+problem_40 <- function(){
+  irrational <- paste0(as.character(1:1000000), collapse = "")
+  as.integer(substr(irrational,1,1))*as.integer(substr(irrational,10,10))*as.integer(substr(irrational,100,100))*as.integer(substr(irrational,1000,1000))*as.integer(substr(irrational,10000,10000))*as.integer(substr(irrational,100000,100000))*as.integer(substr(irrational,1000000,1000000))
+}
+
+problem_41 <- function(){
+  max <- 0
+  for(i in 4:9){
+    nums <- 1:i
+    perms <- as.integer(apply(matrix(nums[permutations(i)],ncol=i),1,paste,collapse=""))
+    for(j in 1:length(perms)){
+      if(is_prime(perms[j]) && perms[j] > max){
+        max <- perms[j]
+      }
+    }
+  }
+  max
+}
+
+problem_42 <- function(){
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
+  words <- readLines("problem42.txt", warn = FALSE)
+  
+  words <- sort(unlist(strsplit(gsub("\"", "", words), ",")))
+  
+  numbers <- 1:26
+  letters <- toupper(letters)
+  letter_values <- data.frame("Numbers" = numbers, "Letters" = letters, stringsAsFactors = FALSE)
+  
+  all_words <- NULL
+  for(i in 1:length(words)){
+    str <- words[i]
+    word_score <- 0
+    for(j in 1:nchar(str)){
+      word_score <- word_score + letter_values[letter_values$Letters==substring(str,j,j),]$Numbers
+    }
+    all_words <- c(all_words, word_score)
+  }
+  
+  i <- 1
+  n <- 1
+  triangle_numbers <- NULL
+  while(i < max(all_words)){
+    i <- 1/2*n*(n+1)
+    triangle_numbers <- c(triangle_numbers, i)
+    n <- n+1
+  }
+  
+  sum(all_words %in% triangle_numbers)
+}
+
+remove_doubles <- function(n){
+  ind <- which(n%/%100 == (n%/%10)%%10 | n%/%100 == n%%10 | (n%/%10)%%10 == n%%10)
+ if(length(ind) == 0){
+   return(n)
+ }
+  else{
+   return(n[-ind])
+  }
+}
+
+create_numbers <- function(x, prime){
+  nums <- NULL
+  n <- unique(substr(x, 2, 3))
+  for(i in 1:length(n)){
+    for(j in 0:9){
+      nums <- c(nums, paste0(n[i], as.character(j), collapse = ""))
+    }
+  }
+  nums <- as.integer(nums)
+  new_digits <- as.character(remove_doubles(nums[nums%%prime == 0]))
+  new_digits <- unlist(lapply(as.character(new_digits), function(x) {if(nchar(x) == 2) paste0("0",x) else x}))
+  
+  current_nums <- NULL
+  for(i in 1:length(x)){
+    for(j in 1:length(new_digits)){
+      if(substr(x[i], 2, 3) == substr(new_digits[j], 1, 2)){
+        current_nums <- c(current_nums, paste0(x[i], substr(new_digits[j], 3, 3), collapse = ""))
+      }
+    }
+  }
+  current_nums
+}
+
+problem_43 <- function(){
+  nums <- remove_doubles(seq(0, 999, by = 2))
+  nums <- unlist(lapply(as.character(nums), function(x) {if(nchar(x) == 2) paste0("0",x) else x}))
+  primes <- sieve(18)[-1]
+  for(i in 1:length(primes)){
+    nums <- create_numbers(nums, primes[i])
+  }
+  nums
+}
 #ptm <- proc.time()
 #proc.time() - ptm
 
