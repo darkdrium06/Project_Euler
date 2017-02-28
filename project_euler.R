@@ -456,7 +456,7 @@ problem_26 <- function(){
 }
 
 is_prime <- function(n){
-  if(n<=1){
+  if(n <= 1){
     return(FALSE)
   }
   for(i in 2:ceiling(sqrt(n))){
@@ -756,40 +756,233 @@ remove_doubles <- function(n){
 
 create_numbers <- function(x, prime){
   nums <- NULL
-  n <- unique(substr(x, 2, 3))
-  for(i in 1:length(n)){
-    for(j in 0:9){
-      nums <- c(nums, paste0(n[i], as.character(j), collapse = ""))
+  if(prime != 0){
+    substr_len <- max(nchar(x))
+    n <- unique(substr(x, substr_len-1, substr_len))
+    for(i in 1:length(n)){
+      for(j in 0:9){
+        nums <- c(nums, paste0(n[i], as.character(j), collapse = ""))
+      }
     }
-  }
-  nums <- as.integer(nums)
-  new_digits <- as.character(remove_doubles(nums[nums%%prime == 0]))
-  new_digits <- unlist(lapply(as.character(new_digits), function(x) {if(nchar(x) == 2) paste0("0",x) else x}))
-  
-  current_nums <- NULL
-  for(i in 1:length(x)){
-    for(j in 1:length(new_digits)){
-      if(substr(x[i], 2, 3) == substr(new_digits[j], 1, 2)){
-        current_nums <- c(current_nums, paste0(x[i], substr(new_digits[j], 3, 3), collapse = ""))
+    nums <- as.integer(nums)
+    new_digits <- as.character(remove_doubles(nums[nums%%prime == 0]))
+    new_digits <- unlist(lapply(as.character(new_digits), function(x) {if(nchar(x) == 2) paste0("0",x) else x}))
+    
+    current_nums <- NULL
+    for(i in 1:length(x)){
+      for(j in 1:length(new_digits)){
+        if(substr(x[i], substr_len-1, substr_len) == substr(new_digits[j], 1, 2)){
+          current_nums <- c(current_nums, paste0(x[i], substr(new_digits[j], 3, 3), collapse = ""))
+        }
       }
     }
   }
-  current_nums
+  else{
+    n <- x
+    for(i in 1:length(n)){
+      for(j in 0:9){
+        nums <- c(nums, paste0(as.character(j), n[i], collapse = ""))
+      }
+    }
+    current_nums <- nums
+  }
+  
+  nums_to_remove <- NULL
+  for(i in 1:length(current_nums)){
+    str <- current_nums[i]
+    counts <- rep(0,10)
+
+    for(j in 1:nchar(str)){
+      digit <- as.integer(substr(str,j,j))+1
+      counts[digit] <- counts[digit] + 1
+    }
+    if(length(which(counts>1)) > 0){
+      nums_to_remove <- c(nums_to_remove, i)
+    }
+  }
+
+  current_nums[-nums_to_remove]
 }
 
 problem_43 <- function(){
+  require(gmp)
   nums <- remove_doubles(seq(0, 999, by = 2))
   nums <- unlist(lapply(as.character(nums), function(x) {if(nchar(x) == 2) paste0("0",x) else x}))
   primes <- sieve(18)[-1]
   for(i in 1:length(primes)){
     nums <- create_numbers(nums, primes[i])
   }
-  nums
+  
+  nums <- create_numbers(nums, 0)
+  
+  sum(as.bigz(nums))
+}
+
+is_pentagonal <- function(n){
+  x <- floor((1 + sqrt( 1 + 24*n))/6)
+  x*(3*x-1)/2 == n
+}
+
+problem_44 <- function(){
+  n <- 1:3000
+  pents <- n*(3*n-1)/2
+  combos <- expand.grid(pents, pents)
+  combos <- combos[which(combos$Var1 != combos$Var2),]
+  combos <- combos[which(is_pentagonal(combos$Var1+combos$Var2) & is_pentagonal(abs(combos$Var1-combos$Var2))),]
+  min(abs(combos$Var1-combos$Var2))
+}
+
+is_hexagonal <- function(n){
+  x <- floor((1 + sqrt( 1 + 8*n))/4)
+  x*(2*x-1) == n
+}
+
+problem_45 <- function(){
+  i <- 286
+  triangle <- i*(i+1)/2
+  while(!is_pentagonal(triangle) || !is_hexagonal(triangle)){
+    i <- i + 1
+    triangle <- i*(i+1)/2
+  }
+  triangle
+}
+
+problem_46 <- function(){
+  n <- 35
+  result <- 0
+  while(TRUE){
+    if(!is_prime(n)){
+      i <- 1
+      while(2*i*i < n){
+        if(is_prime(n-2*i*i)){
+          break
+        }
+        i <- i + 1
+      }
+      if(!is_prime(n-2*i*i)){
+        result <- n
+        break
+      }
+    }
+    n <- n + 2
+  }
+  result
+}
+
+problem_47 <- function(){
+  limit <- 1000000
+  factors <- rep(0,limit)
+  count <- 0
+  result <- 0
+  for(i in 2:limit){
+    if(factors[i] == 0){
+      count <- 0
+      num <- i
+      while(num < limit){
+        factors[num] <- factors[num] + 1
+        num <- num + i
+      }
+    }
+    else if(factors[i] == 4){
+      count <- count + 1
+      if(count == 4){
+        result <- i-3
+        break
+      }
+    }
+    else{
+      count <- 0
+    }
+  }
+  result
+}
+
+problem_48 <- function(){
+  require(gmp)
+  i <- 1:1000
+  str <- as.character(sum(pow.bigz(i,i)))
+  substr(str, nchar(str)-9, nchar(str))
+}
+
+problem_49 <- function(){
+  primes <- sieve(10000)
+  primes <- primes[which(primes > 999 & !(primes %in% c(1487, 4817, 8147)))]
+  seq_num <- NULL
+  i <- 1
+  while(TRUE){
+    digits <- as.integer(unlist(strsplit(as.character(primes[i]), "")))
+    nums <- as.integer(apply(matrix(digits[permutations(4)],ncol=4),1,paste,collapse=""))
+    sequence <- c(primes[i], primes[i]+3330, primes[i]+2*3330)
+    if(sum(sequence %in% nums) == 3 && sum(sequence %in% primes) == 3){
+      seq_num <- paste0(as.character(sequence), collapse = "")
+      break
+    }
+    i <- i + 1
+  }
+  seq_num
+}
+
+problem_50 <- function(){
+  primes <- sieve(1000000)
+  primes_to_sum <- primes[1:700]
+  consecutive_sums <- NULL
+  for(i in 1:length(primes_to_sum)){
+    sums <- cumsum(primes_to_sum[i:length(primes_to_sum)])
+    filtered_sums <- sums[sums %in% primes]
+    filtered_sums <- max(filtered_sums)
+    consecutive_sums <- rbind(consecutive_sums, c((which(sums==filtered_sums)-i+1), filtered_sums))
+  }
+  consecutive_sums[which.max(consecutive_sums[,1]),2]
+}
+
+problem_51 <- function(){
+  primes <- sieve(1000000)
+  primes <- as.character(primes[primes > 10000])
+  min <- 0
+  for(i in primes){
+    counts <- rep(0,10)
+    for(j in 1:nchar(i)){
+      digit <- as.integer(substr(i,j,j))+1
+      counts[digit] <- counts[digit] + 1
+    }
+    if(max(counts) < 3){
+      next
+    }
+    else{
+      digits <- as.character(0:9)
+      num_to_replace <- digits[which.max(counts)]
+      composite_count <- 0
+      prime_count <- 0
+      first_family <- TRUE
+      for(k in digits){
+        new_num <- gsub(num_to_replace, k, i)
+        if(composite_count > 2 || prime_count == 8){
+          break
+        }
+        if(new_num %in% primes){
+          prime_count <- prime_count + 1
+          if(first_family){
+            min <- new_num
+            first_family <- FALSE
+          }
+        }
+        else{
+          composite_count <- composite_count + 1
+        }
+      }
+      if(prime_count == 8){
+        break
+      }
+    }
+  }
+  min
+}
+
+problem_52 <- function(){
+
 }
 #ptm <- proc.time()
 #proc.time() - ptm
-
-
 
 
 
