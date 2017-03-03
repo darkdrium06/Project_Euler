@@ -455,17 +455,29 @@ problem_26 <- function(){
   maxi
 }
 
+# is_prime <- function(n){
+#   if(n <= 1){
+#     return(FALSE)
+#   }
+#   for(i in 2:ceiling(sqrt(n))){
+#     if(n%%i == 0){
+#       return(FALSE)
+#     }
+#     
+#   }
+#   return(TRUE)
+# }
+
 is_prime <- function(n){
   if(n <= 1){
     return(FALSE)
   }
-  for(i in 2:ceiling(sqrt(n))){
-    if(n%%i == 0){
-      return(FALSE)
-    }
-    
+  else if(n == 2){
+    return(TRUE)
   }
-  return(TRUE)
+  else{
+    return(all(n%%2:ceiling(sqrt(n))!=0))
+  }
 }
 
 problem_27 <- function(){
@@ -978,11 +990,584 @@ problem_51 <- function(){
   min
 }
 
-problem_52 <- function(){
+is_digit_anagram <- function(a,b){
+  x <- as.character(a)
+  y <- as.character(b)
+  
+  counts <- rep(0,10)
+  for(j in 1:nchar(x)){
+    digit <- as.integer(substr(x,j,j))+1
+    counts[digit] <- counts[digit] + 1
+  }
+  
+  for(j in 1:nchar(y)){
+    digit <- as.integer(substr(y,j,j))+1
+    counts[digit] <- counts[digit] - 1
+    if(counts[digit] < 0){
+      return(FALSE)
+    }
+  }
 
+  sum(counts) == 0
+}
+
+problem_52 <- function(){
+  for(i in 100000:1000000){
+    j <- 2
+    count <- 1
+    while(is_digit_anagram(i,i*j)){
+      count <- count + 1
+      j <- j + 1
+    }
+    if(count == 6){
+      break;
+    }
+  }
+  i
+}
+
+problem_53 <- function(){
+  total <- 0
+  for(i in 1:100){
+    for(j in 1:100){
+      if(choose(i,j) > 1000000){
+        total <- total + 1
+      }
+    }
+  }
+  total
+}
+
+parse_hand <- function(hand){
+  values <- NULL
+  suits <- NULL
+  for(i in 1:10){
+    if(i%%2 == 0){
+      suits <- c(suits, substr(hand,i,i))
+    }
+    else{
+      number_value <- NULL
+      switch(substr(hand,i,i),
+             "T" = {number_value <- "10"},
+             "J" = {number_value <- "11"},
+             "Q" = {number_value <- "12"},
+             "K" = {number_value <- "13"},
+             "A" = {number_value <- "14"},
+             number_value <- substr(hand,i,i))
+      values <- c(values, number_value)
+    }
+  }
+  list(suits,as.integer(values))
+}
+
+rank_hand <- function(parsed_hand){
+  high_card <- max(parsed_hand[[2]])
+  #flushes
+  if(length(unique(parsed_hand[[1]])) == 1){
+    #royal flush
+    if(sum(parsed_hand[[2]]) == 60){
+      return(10)
+    }
+    else{
+      #straight flush
+      if(length(unique(parsed_hand[[2]])) == 5 && max(parsed_hand[[2]])-min(parsed_hand[[2]]) == 4){
+        return(c(9,high_card))
+      }
+      #flush
+      else{
+        return(c(6,high_card))
+      }
+    }
+  }
+  #n of a kind
+  else if(length(unique(parsed_hand[[2]])) < 5){
+    counts <- rep(0,14)
+    for(i in 1:5){
+      digit <- parsed_hand[[2]][i]
+      counts[digit] <- counts[digit] + 1
+    }
+    max_count <- max(counts)
+    num_counts <- length(counts[counts>0])
+    #four of a kind
+    if(max_count == 4){
+      return(c(8,which(counts==4),which(counts==1))) 
+    }
+    else{
+      if(max_count == 3){
+        #full house
+        if(num_counts == 2){
+          return(c(7,which(counts==3),which(counts==2)))
+        }
+        #three of a kind
+        else{
+          return(c(4,which(counts==3),max(which(counts==1)),min(which(counts==1))))
+        }
+      }
+      else{ #max_count == 2
+        #two pair
+        if(num_counts == 3){
+          return(c(3,max(which(counts==2)),min(which(counts==2)),which(counts==1)))
+        }
+        #one pair
+        else{ #num_counts == 4
+          return(c(2,which(counts==2),rev(which(counts==1))))
+        }
+      }
+    }
+  }
+  #straight
+  else if(length(unique(parsed_hand[[2]])) == 5 && max(parsed_hand[[2]])-min(parsed_hand[[2]]) == 4){
+    return(c(5,high_card)) 
+  }
+  #high card
+  else{
+    return(c(1,rev(sort(parsed_hand[[2]]))))
+  }
+}
+
+problem_54 <- function(){
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
+  hands <- gsub(" ", "", readLines("problem54.txt", warn = FALSE))
+  player_one <- substr(hands,1,10)
+  player_two <- substr(hands,11,20)
+  player_one_ranks <- lapply(player_one, function(x) {rank_hand(parse_hand(x))})
+  player_two_ranks <- lapply(player_two, function(x) {rank_hand(parse_hand(x))})
+  num_wins <- 0
+  for(i in 1:length(player_one_ranks)){
+    player_one_hand <- player_one_ranks[[i]]
+    player_two_hand <- player_two_ranks[[i]]
+    j <- 1
+    if(player_one_hand[j] > player_two_hand[j]){
+      num_wins <- num_wins + 1
+    }
+    else if(player_one_hand[j] < player_two_hand[j]){
+      next
+    }
+    else{
+      while(player_one_hand[j] == player_two_hand[j]){
+        j <- j + 1
+      }
+      if(player_one_hand[j] > player_two_hand[j]){
+        num_wins <- num_wins + 1
+      }
+    }
+  }
+  num_wins
+}
+
+reverse_number <- function(n){
+  require(gmp)
+  str <- paste0(rev(unlist(strsplit(as.character(n),""))), collapse = "")
+  as.bigz(substr(str,regexpr("[^0]",str),nchar(str)))
+}
+
+problem_55 <- function(){
+  require(gmp)
+  count <- 0
+  for(i in 80:9999){
+    i <- as.bigz(i)
+    sum <- add.bigz(i, reverse_number(i))
+    for(j in 1:50){
+      if(sum == reverse_number(sum)){
+        break
+      }
+      else{
+        sum <- add.bigz(sum, reverse_number(sum))
+      }
+    }
+    if(j == 50){
+      count <- count + 1
+    }
+  }
+  count
+}
+
+problem_56 <- function(){
+  require(gmp)
+  max <- 0
+  for(i in 2:99){
+    for(j in 2:99){
+      power <- pow.bigz(i,j)
+      power <- as.character(power)
+      sum <- 0
+      for(k in 1:nchar(power)){
+        sum <- sum + as.integer(substr(power,k,k))
+      }
+      if(sum > max){
+        max <- sum
+      }
+    }
+  }
+  max
+}
+
+problem_57 <- function(){
+  require(gmp)
+  numerator <- as.bigz(1)
+  denominator <- as.bigz(1)
+  count <- 0
+  for(i in 1:1000){
+    old_denominator <- denominator
+    denominator <- add.bigz(numerator, denominator)
+    numerator <- add.bigz(denominator, old_denominator)
+    if(nchar(as.character(numerator)) > nchar(as.character(denominator))){
+      count <- count + 1
+    }
+  }
+  count
+}
+
+problem_58 <- function(){
+  ratio <- 1
+  n <- 1
+  num_primes <- 0
+  num_diag <- 1
+  while(ratio > .1){
+    n <- n + 2
+    num_primes <- num_primes + sum(unlist(lapply(c(n^2,n^2-n+1,n^2-2*n+2,n^2-3*n+3), is_prime)))
+    num_diag <- num_diag + 4
+    ratio <- num_primes/num_diag
+  }
+  n
+}
+
+problem_59 <- function(){
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
+  codes <- readLines("problem59.txt", warn = FALSE)
+  codes <- as.integer(unlist(strsplit(codes, ",")))
+  ascii <- utf8ToInt("a"):utf8ToInt("z")
+  encryption_keys <- expand.grid(ascii, ascii, ascii)
+  decoded_messages <- vector(mode = "character", length = nrow(encryption_keys))
+  for(i in 1:nrow(encryption_keys)){
+    repeated_encryption <- c(rep(unname(unlist(encryption_keys[i,])), length(codes)%/%3),encryption_keys[i,1])
+    decoded_messages[i] <- intToUtf8(bitwXor(codes,repeated_encryption))
+  }
+  sum(utf8ToInt(decoded_messages[grep(" the ", decoded_messages)]))
+}
+
+find_min_set <- function(primes){
+  len <- length(primes)
+  prime_pairs <- matrix(data = FALSE, ncol = len, nrow = len)
+  for(i in 1:(len-1)){
+    for(j in (i+1):len){
+      first_prime <- primes[i]*10^(nchar(primes[j]))+primes[j]
+      second_prime <- primes[j]*10^(nchar(primes[i]))+primes[i]
+      concat_primes_are_prime <- is_prime(first_prime) && is_prime(second_prime)
+      prime_pairs[i,j] = concat_primes_are_prime
+      prime_pairs[j,i] = concat_primes_are_prime
+    }
+  }
+  prime_pairs
+  sums <- NULL
+  for(i in 1:(len-4)){
+    for(j in (i+1):(len-3)){
+      if(prime_pairs[i,j]){
+        for(k in (j+1):(len-2)){
+          if(prime_pairs[i,k] && prime_pairs[j,k]){
+            for(l in (k+1):(len-1)){
+              if(prime_pairs[i,l] && prime_pairs[j,l] && prime_pairs[k,l]){
+                for(m in (l+1):len){
+                  if(prime_pairs[i,m] && prime_pairs[j,m] && prime_pairs[k,m] && prime_pairs[l,m]){
+                    sums <- c(sums, sum(primes[c(i,j,k,l,m)]))
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  ifelse(length(sums) != 0, min(sums), Inf)
+}
+
+#need to optimize
+problem_60 <- function(){
+  primes <- sieve(10000)[-c(1,3)]
+  primes_1 <- c(3,primes[primes%%3 == 1])
+  primes_2 <- c(3,primes[primes%%3 == 2])
+  min(find_min_set(primes_1),find_min_set(primes_2))
+}
+
+find_cycles <- function(set_one, set_two){
+  potential_cycles <- list()
+  for(i in set_one){
+    first_set_one <- substr(i, 1, 2)
+    last_set_one <- substr(i, nchar(i)-1, nchar(i)) 
+    for(j in set_two){
+      first_set_two <- substr(j, 1, 2)
+      last_set_two <- substr(j, nchar(j)-1, nchar(j))
+      if(first_set_one %in% last_set_two){
+        potential_cycles[[length(potential_cycles)+1]] <- paste0(j, i, collapse = "")
+      }
+      else if(last_set_one %in% first_set_two){
+        potential_cycles[[length(potential_cycles)+1]] <- paste0(i, j, collapse = "")
+      }
+    }
+  }
+  potential_cycles[-which(substr(potential_cycles,nchar(potential_cycles),nchar(potential_cycles))=="0")]
+}
+
+problem_61 <- function(){
+  formulas <- c("n*(n+1)/2", "n*n", "n*(3*n-1)/2", "n*(2*n-1)", "n*(5*n-3)/2", "n*(3*n-2)")
+  all_sets <- list()
+  for(i in 1:6){
+    n <- 1:200
+    set <- eval(parse(text=formulas[i]))
+    set <- as.character(set[nchar(set) == 4])
+    all_sets[[i]] <- set
+  }
+  
+  n <- 1:6
+  perms <- matrix(n[permutations(6)], ncol = 6)
+  perms <- perms[perms[,1] == 6,]
+  for(i in 1:nrow(perms)){
+    iteration <- perms[i,]
+    cycle <- all_sets[[iteration[1]]]
+    for(j in 2:length(iteration)){
+      cycle <- find_cycles(cycle,all_sets[[iteration[j]]])
+    }
+    if(length(cycle) != 0){
+      for(i in 1:length(cycle)){
+        str <- cycle[[i]]
+        if(substr(str,1,2) == substr(str,nchar(str)-1,nchar(str))){
+          sum <- 0
+          for(i in seq(1, nchar(str), by=4)){
+            sum <- sum + as.integer(substr(str,i,i+3))
+          }
+          return(sum);
+        }
+      }
+    }
+  }
+}
+
+problem_62 <- function(){
+  n <- (1:10000)^3
+  sorted_cubes <- unlist(lapply(lapply(strsplit(as.character(n), ""), sort), paste, sep="", collapse=""))
+  num_perms <- table(sorted_cubes)
+  min(which(sorted_cubes %in% names(num_perms[num_perms == 5])))^3
+}
+
+problem_63 <- function(){
+  n <- 1:9
+  sum <- 0
+  i <- 1
+  while(sum(nchar(as.character(pow.bigz(n,i)))==i) != 0){
+    sum <- sum + sum(nchar(as.character(pow.bigz(n,i)))==i)
+    i <- i + 1
+  }
+  sum
+}
+
+continued_fraction_expansion <- function(n){
+  m <- 0
+  d <- 1
+  a0 <- floor(sqrt(n))
+  a <- a0
+  seq <- a
+  while(a != 2*a0){
+    m <- d*a-m
+    d <- (n-m^2)/d
+    a <- floor((a0+m)/d)
+    seq <- c(seq,a)
+  }
+  seq
+}
+
+problem_64 <- function(){
+  n <- 1:10000
+  squares <- (1:100)^2
+  n <- n[-squares]
+  sum <- 0
+  for(i in n){
+    if((length(continued_fraction_expansion(i))-1)%%2 == 1){
+      sum <- sum + 1
+    }
+  }
+  sum
+}
+
+problem_65 <- function(){
+  require(gmp)
+  x<- rep(1,99)
+  x[seq(2,99,by=3)] <- seq(2,66,by=2)
+  
+  fraction <- 0
+  for(i in x[99:1]){
+    fraction <- as.bigq(1/(i+fraction))
+  }
+  
+  y <- 2 + fraction 
+  sum(as.numeric(unlist(strsplit(as.character(numerator(y)),""))))
+}
+
+minx <- function(n){
+  d <- continued_fraction_expansion(n)
+  if(length(d) == 2 | length(d) == 3){
+    return(d[1]*d[2]+1)
+  }
+  else if(length(d)%%2==1){
+    d <- d[-length(d)]  
+  }
+  else{
+    d <- c(d,d[-c(1,length(d))])
+  }
+  
+  conv <- c(d[length(d)-1]*d[length(d)]+1, d[length(d)])
+  for(i in (length(d)-2):1){
+    conv <- c(d[i]*conv[1]+conv[2], conv[1])
+  }
+  return(conv[1])
+}
+
+problem_66 <- function(){
+  d <- 1:1000
+  squares <- (1:floor(sqrt(length(d))))^2
+  d <- d[-squares]
+  
+  x <- c()
+  for(i in d){
+    x <- c(x,minx(i))
+  }
+  
+  d[which(x==max(x))]
+}
+
+problem_67 <- function(){
+  setwd("C:/Users/mshay/Documents/R/Project_Euler")
+  triangle <- readLines("problem67.txt", warn = FALSE)
+  triangle_size <- length(triangle)
+  nums <- list()
+  for(i in 1:triangle_size){
+    nums <- c(nums, list(as.numeric(unlist(strsplit(triangle[i], " ")))))
+  }
+  
+  for(i in (length(nums)-1):1){
+    for(j in 1:length(nums[[i]])){
+      nums[[i]][j] <- max(nums[[i+1]][j]+nums[[i]][j],nums[[i+1]][j+1]+nums[[i]][j])
+    }
+  }
+  nums[[1]][1]
+}
+
+generate_ring_sums <- function(magic_ring){
+  c(sum(magic_ring[1], magic_ring[6], magic_ring[7])
+  ,sum(magic_ring[2], magic_ring[7], magic_ring[8])
+  ,sum(magic_ring[3], magic_ring[8], magic_ring[9])
+  ,sum(magic_ring[4], magic_ring[9], magic_ring[10])
+  ,sum(magic_ring[5], magic_ring[10], magic_ring[6]))
+}
+
+create_ring_string <- function(magic_ring){
+  start <- which.min(magic_ring[1:5])
+  if(start != 1){
+    outer_order <- c(seq(start, 5, by = 1), seq(1, start-1, by = 1))
+    first_inner_order <- c(seq(start+5, 10, by = 1), seq(6, (start+5)-1, by = 1))
+    second_inner_order <- first_inner_order+1
+    second_inner_order[which(second_inner_order==11)] <- 6
+  }
+  else{
+    outer_order <- 1:5
+    first_inner_order <- 6:10
+    second_inner_order <- c(7,8,9,10,6)
+  }
+  magic_ring <- as.character(magic_ring)
+  str <- NULL
+  for(i in 1:5){
+    str <- paste0(str, magic_ring[outer_order[i]], magic_ring[first_inner_order[i]], magic_ring[second_inner_order[i]])
+  }
+  str
+}
+
+problem_68 <- function(){
+  nums <- 1:10
+  m <- matrix(nums[permutations(10)],ncol=10)
+  m <- m[which(m[,1] == 10 | m[,2] == 10 | m[,3] == 10 | m[,4] == 10 | m[,5] == 10),]
+  valid_rings <- m[which(apply(m, 1, function(x) {length(unique(generate_ring_sums(x)))==1})),]
+  max(apply(valid_rings, 1, create_ring_string))
+}
+
+# prime_factors <- function(n){
+#   factors <- NULL
+#   original_n <- n
+#   if(is_prime(n)){
+#     return(n)
+#   }
+#   while(n%%2 == 0){
+#     factors <- c(factors,2)
+#     n <- n/2
+#   }
+#   
+#   if(n == 1){
+#     return(factors)
+#   }
+#   
+#   for(i in seq(3, ceiling(sqrt(original_n)), by = 2)){
+#     while(n%%i == 0){
+#       factors <- c(factors,i)
+#       n <- n/i
+#     }
+#   }
+#   factors
+# }
+# 
+# phi <- function(n){
+#   if(n == 1){
+#     return(1)
+#   }
+#   prod(1-(1/(unique(factorize(n)))))*n
+# }
+
+problem_69 <- function(){
+  primes <- sieve(100)
+  number <- 1
+  
+  for(i in primes){
+    number <- number * i
+    if(number > 1000000){
+      number <- number / i
+      break
+    }
+  }
+  
+  number
+}
+
+problem_70 <- function(){
+  primes <- sieve(5000)
+  primes <- primes[-which(primes < 1000)]
+  min <- Inf
+  value <- 0
+  for(i in primes){
+    for(j in primes){
+      num <- i*j
+      if(num < 10000000){
+        phi <- (1-(1/i))*(1-(1/j))*num
+        if(is_digit_anagram(phi,num)){
+          ratio <- num/phi
+          if(min > ratio){
+            min <- ratio
+            value <- num
+          }
+        }
+      }
+    }
+  }
+  value
+}
+
+problem_71 <- function(){
+  for(i in 1:10){
+    for(j in i:10){
+      print(as.bigz(i)/as.bigz(j))
+    }
+  }
 }
 #ptm <- proc.time()
 #proc.time() - ptm
+
+
 
 
 
