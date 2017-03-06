@@ -1390,16 +1390,22 @@ problem_64 <- function(){
 
 problem_65 <- function(){
   require(gmp)
-  x<- rep(1,99)
-  x[seq(2,99,by=3)] <- seq(2,66,by=2)
-  
-  fraction <- 0
-  for(i in x[99:1]){
-    fraction <- as.bigq(1/(i+fraction))
+  nums <- rep(as.bigz(0),100)
+  nums[0] <- as.bigz("2");
+  nums[1] <- as.bigz("3");
+  nums[2] <- as.bigz("8");
+  k <- as.bigz("4");
+  for(i in 3:99){
+    if(i%%3 == 2){
+      nums[i] <- add.bigz(prod.bigz(nums[i-1],k),nums[i-2])
+      k <- add.bigz(k, as.bigz("2"))
+    }
+    else{
+      nums[i] <- add.bigz(nums[i-1], nums[i-2])
+    }
   }
   
-  y <- 2 + fraction 
-  sum(as.numeric(unlist(strsplit(as.character(numerator(y)),""))))
+  sum(as.numeric(unlist(strsplit(as.character(nums[99]),"")))) 
 }
 
 minx <- function(n){
@@ -1421,6 +1427,7 @@ minx <- function(n){
   return(conv[1])
 }
 
+#rewrite
 problem_66 <- function(){
   d <- 1:1000
   squares <- (1:floor(sqrt(length(d))))^2
@@ -1488,81 +1495,165 @@ problem_68 <- function(){
   max(apply(valid_rings, 1, create_ring_string))
 }
 
-# prime_factors <- function(n){
-#   factors <- NULL
-#   original_n <- n
-#   if(is_prime(n)){
-#     return(n)
-#   }
-#   while(n%%2 == 0){
-#     factors <- c(factors,2)
-#     n <- n/2
-#   }
-#   
-#   if(n == 1){
-#     return(factors)
-#   }
-#   
-#   for(i in seq(3, ceiling(sqrt(original_n)), by = 2)){
-#     while(n%%i == 0){
-#       factors <- c(factors,i)
-#       n <- n/i
-#     }
-#   }
-#   factors
-# }
-# 
-# phi <- function(n){
-#   if(n == 1){
-#     return(1)
-#   }
-#   prod(1-(1/(unique(factorize(n)))))*n
-# }
-
-problem_69 <- function(){
-  primes <- sieve(100)
-  number <- 1
+phi_sieve <- function(n){
+  phi <- rep(0,n)
   
-  for(i in primes){
-    number <- number * i
-    if(number > 1000000){
-      number <- number / i
-      break
+  for(i in 1:n){ 
+    phi[i] <- i
+  }
+  
+  for(i in 2:n){
+    if(phi[i] == i){
+      for(j in seq(i, n, by = i)){
+        phi[j] <- (phi[j]/i) * (i-1)
+      }
     }
   }
   
-  number
+  phi
+}
+
+problem_69 <- function(){
+  i <- 1:1000000
+  phi <- phi_sieve(1000000)
+  which.max(i/phi[i])
 }
 
 problem_70 <- function(){
-  primes <- sieve(5000)
-  primes <- primes[-which(primes < 1000)]
-  min <- Inf
-  value <- 0
-  for(i in primes){
-    for(j in primes){
-      num <- i*j
-      if(num < 10000000){
-        phi <- (1-(1/i))*(1-(1/j))*num
-        if(is_digit_anagram(phi,num)){
-          ratio <- num/phi
-          if(min > ratio){
-            min <- ratio
-            value <- num
+  i <- 2:10000000
+  phi <- phi_sieve(10000000)[-1]
+  df <- as.data.frame(phi)
+  df$i <- i
+  df$difference <- i - phi
+  df$ratio <- i/phi
+  df <- df[df$difference > 1,]
+  df <- df[order(df$ratio),]
+  
+  result <- 0
+  for(j in 2:nrow(df)){
+    if(is_digit_anagram(df[j,1],df[j,2])){
+      result <- df[j,2]
+      break;
+    }
+  }
+  result
+}
+
+gcds <- function(x,y){
+  if(y == 0){
+    return(x)
+  }
+  else{
+    gcds(y, x%%y)
+  }
+}
+
+problem_71 <- function(){
+  numerator <- 3
+  denominator <- 7
+  numer <- 0.1
+  limd <- 1e6+1
+  while(numer != floor(numer)){
+    limd <- limd - 1
+    numer <- ((numerator * limd) - 1) / denominator
+  }
+  c(numer, limd) / gcds(numer, limd)
+}
+
+problem_72 <- function(){
+  phi <- phi_sieve(1000000)[-1]
+  sum <- as.bigz(0)
+  for(i in 1:length(phi)){
+    sum <- add.bigz(sum,phi[i])
+  }
+  sum
+}
+
+problem_73 <- function(){
+  fractions <- sapply(5:12000, function(i) (ceiling(i/3):floor(i/2)) / i)
+  length(unique(unlist(fractions))) - 2
+}
+
+make_chain <- function(n){
+  str <- as.character(n)
+  sum <- n
+  chain <- 0
+  chains <- NULL
+  while(!(sum %in% chains)){
+    chains <- c(chains, sum)
+    sum <- sum(factorial(as.integer(unlist(strsplit(str, "")))))
+    str <- as.character(sum)
+    chain <- chain + 1
+  }
+  chains
+}
+
+problem_74 <- function(){
+  #sum(unlist(lapply(1:9999, make_chain))==60)
+  all_chain_sizes <- NULL
+  for(i in 999999:1){
+    if(!is.null(all_chain_sizes[i]) && !is.na(all_chain_sizes[i])){
+      next;
+    }
+    str <- as.character(i)
+    sum <- i
+    if(sum(factorial(as.integer(unlist(strsplit(str, ""))))) == sum){
+      all_chain_sizes[sum] <- 1
+      next;
+    }
+    chain <- 0
+    chains <- NULL
+    while(!(sum %in% chains)){
+      if(!is.null(all_chain_sizes[sum]) && !is.na(all_chain_sizes[sum])){
+        break;
+      }
+      chains <- c(chains, sum)
+      sum <- sum(factorial(as.integer(unlist(strsplit(str, "")))))
+      str <- as.character(sum)
+      chain <- chain + 1
+    }
+    
+    chain_sizes <- length(chains):1
+    if(length(which(chains==sum)) != 0){
+      chain_sizes <- chain_sizes[-(length(chain_sizes):(which(chains==sum)+1))]
+      for(j in 1:length(chain_sizes)){
+        all_chain_sizes[chains[j]] <- chain_sizes[j]
+      }
+    }
+    else{
+      for(j in 1:length(chain_sizes)){
+        all_chain_sizes[chains[j]] <- chain_sizes[j] + all_chain_sizes[sum] 
+      }
+    }
+  }
+  
+  all_chain_sizes <- all_chain_sizes[1:999999]
+  sum(all_chain_sizes==60)
+}
+
+
+problem_75 <- function(){
+  values = NULL
+  for(i in 1:ceiling(sqrt(1500000/2))){
+    for(j in (i+1):ceiling(sqrt(150000/2))){
+      if(gcds(i,j) == 1 && (j-i)%%2 == 1){
+        a <- j*j - i*i
+        b <- 2*i*j
+        c <- j*j + i*i
+        if(a+b+c < 1500001){
+          k <- 1
+          sum <- 0
+          while(sum < 1500001){
+            sum <- k*a+k*b+k*c
+            values <- c(values, sum)
+            k <- k + 1
           }
         }
       }
     }
   }
-  value
-}
-
-problem_71 <- function(){
-  for(i in 1:10){
-    for(j in i:10){
-      print(as.bigz(i)/as.bigz(j))
-    }
-  }
+  values <- table(values)
+  length(names(values[values==1]))
 }
 #ptm <- proc.time()
 #proc.time() - ptm
